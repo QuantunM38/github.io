@@ -4,60 +4,108 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QuantumM38 NFT Galerie</title>
+  <link rel="icon" href="favicon.ico" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 30px; }
+    h1 { color: #222; }
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      padding: 10px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+    }
+    .card img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.75);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 90%;
+      max-height: 90%;
+      overflow: auto;
+      text-align: center;
+    }
+    .close-button {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 28px;
+      cursor: pointer;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-  <h1>QuantumM38 NFT Galerie</h1>
+  <h1>🧬 QuantumM38 NFT Galerie</h1>
+  <p id="contractBalance" style="font-weight: bold; font-size: 1.2em; color: green;">
+    💰 Contract-Balance: Lade...
+  </p>
+  <button onclick="mint()">🧬 NFT minten (0.01 ETH)</button>
   <button onclick="loadGallery()">🔄 Galerie aktualisieren</button>
   <button onclick="withdraw()">💸 Einnahmen abheben</button>
-  <div id="gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 20px;"></div>
 
-  <!-- ℹ️ Über das Projekt -->
-  <section style="margin-top: 40px; padding: 20px; background: #f9f9f9; border-radius: 12px;">
-    <h2>ℹ️ Über das QuantumM38-Projekt</h2>
-    <p>
-      <strong>QuantumM38</strong> ist ein innovatives NFT-Projekt, das echte Quantenzufallszahlen nutzt, um einzigartige Mandala-Kunstwerke zu erzeugen. Jeder NFT wird vollständig dezentral auf der Ethereum-Blockchain erstellt und ist garantiert einzigartig.
-    </p>
-    <p>
-      Durch die Verbindung von Web3, IPFS und echter Zufallsphysik (z. B. über Chainlink VRF oder QRNG) hebt sich QuantumM38 von klassischen NFT-Projekten ab.
-    </p>
-    <p>
-      Du kannst auf dieser Seite NFTs direkt minten, anzeigen, auf OpenSea verkaufen oder einfach sammeln.
-    </p>
-  </section>
+  <div id="gallery"></div>
+
+  <div id="modal" class="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <span class="close-button" onclick="closeModal()">&times;</span>
+      <div id="modalBody"></div>
+    </div>
+  </div>
 
   <script>
     const abi = [
-      {
-        "inputs": [],
-        "name": "tokenCounter",
-        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
-        "name": "tokenURI",
-        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "withdraw",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      }
+      { "inputs": [], "name": "mint", "outputs": [{ "internalType": "uint256", "name": "requestId", "type": "uint256" }], "stateMutability": "payable", "type": "function" },
+      { "inputs": [], "name": "tokenCounter", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+      { "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }], "name": "tokenURI", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
     ];
 
     const contractAddress = "0x3692f4186a852A99bC4410781352686fbE152060";
+
+    async function mint() {
+      if (!window.ethereum) return alert("❌ MetaMask nicht gefunden!");
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+        const tx = await contract.mint({ value: ethers.utils.parseEther("0.01") });
+        await tx.wait();
+        alert("✅ NFT gemintet! TX: " + tx.hash);
+        loadGallery();
+      } catch (err) {
+        console.error("❌ Fehler beim Mint:", err);
+        alert("⚠️ Mint fehlgeschlagen – siehe Konsole.");
+      }
+    }
 
     async function loadGallery() {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const contract = new ethers.Contract(contractAddress, abi, signer);
-
       const count = await contract.tokenCounter();
       const gallery = document.getElementById("gallery");
       gallery.innerHTML = "";
@@ -68,70 +116,55 @@
           const httpUrl = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
           const response = await fetch(httpUrl);
           const metadata = await response.json();
-
-          let attributesHTML = "";
-          if (metadata.attributes && Array.isArray(metadata.attributes)) {
-            attributesHTML = "<ul style='list-style:none; padding:0;'>";
-            for (const attr of metadata.attributes) {
-              attributesHTML += `<li><strong>${attr.trait_type}:</strong> ${attr.value}</li>`;
-            }
-            attributesHTML += "</ul>";
-          }
-
           const imgUrl = metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/");
-          const openSeaUrl = `https://testnets.opensea.io/assets/sepolia/${contractAddress}/${i}`;
-          const openSeaSellUrl = `${openSeaUrl}/sell`;
 
           const card = document.createElement("div");
-          card.style.border = "1px solid #ccc";
-          card.style.borderRadius = "12px";
-          card.style.padding = "12px";
-          card.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.1)";
-          card.style.backgroundColor = "#fff";
-          card.style.textAlign = "center";
-
+          card.className = "card";
           card.innerHTML = `
             <h3>${metadata.name}</h3>
-            <img src="${imgUrl}" alt="${metadata.name}" style="max-width: 100%;" />
-            <p>${metadata.description}</p>
-            ${attributesHTML}
-            <a href="${openSeaUrl}" target="_blank">🌐 Auf OpenSea anzeigen</a><br/>
-            <button onclick="window.open('${openSeaSellUrl}', '_blank')">🛒 Verkaufen</button>
+            <img src="${imgUrl}" alt="${metadata.name}" />
           `;
-
+          card.onclick = () => openModal(metadata, i);
           gallery.appendChild(card);
         } catch (e) {
           console.warn("❌ Fehler bei Token", i, e);
         }
       }
     }
-    async function withdraw() {
-      try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, abi, signer);
 
-        const tx = await contract.withdraw();
-        alert("⏳ Auszahlung läuft… TX: " + tx.hash);
-        await tx.wait();
-        alert("✅ Einnahmen erfolgreich abgehoben!");
-        showContractBalance(); // 🔄 Balance nach Auszahlung aktualisieren
-      } catch (e) {
-        console.error("❌ Fehler beim Auszahlen:", e);
-        alert("Fehler beim Auszahlen – siehe Konsole.");
-      }
+    function openModal(metadata, tokenId) {
+      const imgUrl = metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+      const openSeaUrl = `https://testnets.opensea.io/assets/sepolia/${contractAddress}/${tokenId}`;
+      const modalBody = document.getElementById("modalBody");
+      modalBody.innerHTML = `
+        <h2>${metadata.name}</h2>
+        <img src="${imgUrl}" alt="${metadata.name}" style="max-width: 100%; border-radius: 8px;" />
+        <p>${metadata.description}</p>
+        ${metadata.attributes ? metadata.attributes.map(attr => `<div><strong>${attr.trait_type}:</strong> ${attr.value}</div>`).join("") : ""}
+        <br/><a href="${openSeaUrl}" target="_blank">🌐 Auf OpenSea ansehen</a>
+      `;
+      document.getElementById("modal").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    async function withdraw() {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, abi, signer);
+      const tx = await contract.withdraw();
+      await tx.wait();
+      alert("✅ Einnahmen abgehoben!");
+      showContractBalance();
     }
 
     async function showContractBalance() {
-      try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const balanceWei = await provider.getBalance(contractAddress);
-        const balanceEth = ethers.utils.formatEther(balanceWei);
-        document.getElementById("contractBalance").innerText = `💰 Contract-Balance: ${balanceEth} ETH`;
-      } catch (err) {
-        console.error("❌ Fehler beim Laden der Contract-Balance:", err);
-        document.getElementById("contractBalance").innerText = "💰 Contract-Balance: Fehler";
-      }
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const balanceWei = await provider.getBalance(contractAddress);
+      const balanceEth = ethers.utils.formatEther(balanceWei);
+      document.getElementById("contractBalance").innerText = `💰 Contract-Balance: ${balanceEth} ETH`;
     }
 
     if (typeof window.ethereum !== "undefined") {
@@ -139,6 +172,7 @@
         loadGallery();
         showContractBalance();
       });
+      setInterval(showContractBalance, 10000);
     }
   </script>
 </body>
