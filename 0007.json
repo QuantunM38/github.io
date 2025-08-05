@@ -1,0 +1,15 @@
+{
+  "name": "QuantumM38 Rose #0007",
+  "description": "Eine lilae Quantum-Rose mit Drache, Teil der einzigartigen QuantumM38-Kollektion.",
+  "image": "ipfs://bafybeiaggmepxihsry3zjzf4q4gs4iw4wgul76f4dzwghipu77kuni3gcu/0007.png",
+  "attributes": [
+    {
+      "trait_type": "Farbe",
+      "value": "Lila"
+    },
+    {
+      "trait_type": "Bedeutung",
+      "value": "Mystik, Wandlung"
+    }
+  ]
+}
